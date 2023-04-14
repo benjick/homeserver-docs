@@ -1,0 +1,129 @@
+import { BasicAuth } from '@/components/BasicAuth'
+
+export const description = 'description goes here'
+
+# Nginx Proxy Manager
+
+Nginx Proxy Manager is an open-source web-based proxy manager that makes it easy to manage Nginx reverse proxy servers, domains, and SSL/TLS certificates. It provides a user-friendly interface for configuring, monitoring, and securing multiple Nginx servers and their related services, such as Let's Encrypt, without any reference to third-party services like Cloudflare. With Nginx Proxy Manager, you can easily set up a secure and scalable proxy infrastructure for your web applications and services. {{ className: 'lead' }}
+
+## Full configuration example
+
+```{{ title: 'Custom Nginx Configuration' }}
+include /config/nginx/snippets/authelia-location.conf;
+
+location / {
+    include /config/nginx/snippets/proxy.conf;
+    include /config/nginx/snippets/authelia-authrequest.conf;
+    include /config/nginx/snippets/hsts.conf;
+    proxy_pass $forward_scheme://$server:$port;
+}
+
+location /sonarr {
+    include /config/nginx/snippets/proxy.conf;
+    include /config/nginx/snippets/authelia-authrequest.conf;
+    include /config/nginx/snippets/hsts.conf;
+    proxy_pass http://sonarr:8989;
+    proxy_set_header Authorization "Basic dXNlcm5hbWU6cGFzc3dvcmQ";
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+}
+```
+
+In the example above; the proxy_pass for the `/` location will be taken from "Details" page, but since there are no variables for locations added under "Custom locations" we have to hardcode them here.
+
+## Authentication
+
+For authentication, I'm using Authelia to protect my published services.
+
+<div className="not-prose">
+  <Button
+    href="/authelia"
+    variant="text"
+    arrow="right"
+    children="Read more about Authelia"
+  />
+</div>
+
+## Forwarding basic authentication
+
+It's a good idea to protect your running services with basic authentication even though you have it protected with for example Authelia. But, we also don't want to be prompted to enter yet another username/password combination after successfully authenticating with our identity provider.
+
+To solve this we will generate a bash64 hash based on our username and password and add it to the `proxy_set_header Authorization` line.
+
+You can do this in your browser console by running the following command:
+
+```
+btoa("username:password")
+```
+
+and then using the result as follow
+
+```
+proxy_set_header Authorization "Basic dXNlcm5hbWU6cGFzc3dvcmQ";
+```
+
+or, use this tiny client side app to generate the correct configuration:
+
+<BasicAuth />
+
+## Websockets
+
+When using custom `location`-blocks (for example, when using Authelia) in Nginx Proxy Manager the settings from the "Details" page will be ignored. This includes the "Websockets support" toggle. To enable this manually inside a location block we must set the Upgrade and the Connection headers explicitly.
+
+```
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection "upgrade";
+```
+
+## Snippets
+
+Instead of copy/pasting hugh chunks of code for every single host/location we can use snippets. This makes it easier to maintain and update the configuration.
+
+If we have the snippet for security headers located at `/config/nginx/snippets/hsts.conf` we can simply include like this:
+
+```
+include /config/nginx/snippets/hsts.conf;
+```
+
+<Note>
+  On Unraid, I've placed the snippets in
+  `/mnt/user/appdata/NginxProxyManager/nginx/snippets`
+</Note>
+
+### Authelia
+
+<Note>
+  In the `authelia-authrequest.conf` you must change last row to match your
+  domain
+</Note>
+
+<div className="not-prose">
+  <Button
+    href="https://www.authelia.com/integration/proxies/nginx/#supporting-configuration-snippets"
+    variant="text"
+    arrow="right"
+    children="Official Authelia snippets"
+    target="_blank"
+  />
+</div>
+
+### Security Headers
+
+```{{ title: 'hsts.conf' }}
+# From https://gist.github.com/R0GGER/916183fca41f02df1471a6f455e5869f
+# HSTS (ngx_http_headers_module is required) (63072000 seconds = 2 years)
+add_header Strict-Transport-Security "max-age=63072000; preload" always;
+add_header Referrer-Policy strict-origin-when-cross-origin;
+add_header X-Content-Type-Options nosniff;
+add_header X-XSS-Protection "1; mode=block";
+add_header X-Frame-Options SAMEORIGIN;
+add_header Content-Security-Policy upgrade-insecure-requests;
+add_header Permissions-Policy interest-cohort=();
+add_header Expect-CT 'enforce; max-age=604800';
+more_set_headers 'Server: Proxy';
+more_clear_headers 'X-Powered-By';
+```
+
+## Unraid app
+
+I'm using **NginxProxyManager** by **jlesage**.

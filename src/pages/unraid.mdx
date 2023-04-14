@@ -1,0 +1,55 @@
+export const description = 'description goes here'
+
+# Unraid
+
+Unraid is an easy-to-use operating system designed for managing and organizing data storage. Unraid provides a user-friendly interface for managing and monitoring the system's performance, and its Docker integration makes it simple to install and launch applications in a containerized environment. {{ className: 'lead' }}
+
+## Docker
+
+In Unraid you can run Docker containers. But the Unraid Docker UI does not support every single feature, so here are how to do common things the Unraid way.
+
+### Custom networks
+
+Open the terminal and run the following to see a list of you available networks.
+
+```bash
+docker network ls
+```
+
+I use at least one custom network to run my containers on. You can add a network like this:
+
+```bash
+docker network create your-network-name
+```
+
+### Connect app to multiple networks
+
+This might be needed if you have multiple networks and want your reverse proxy to be able to direct traffic to contains inside any of the networks. The UI does not support this feature, but you can do it somewhat manually in a permanent way.
+
+1. Go to the Docker tab and click edit on the relevant app
+2. In the top right corner, click "Basic view" to toggle it to the advanced view
+3. Under "Post arguments" add the following:
+
+```bash {{ title: 'Post arguments' }}
+&& docker network connect your-network-name NginxProxyManager
+```
+
+(replace `your-network-name` with the name of your network and `NginxProxyManager` with the name of your app)
+
+### Always restart app
+
+Similar to above, you can add the following to force a container to restart on errors:
+
+```bash {{ title: 'Post arguments' }}
+--restart unless-stopped
+```
+
+<Note>
+  If you want to combine both the *restart* and *multiple networks* arguments,
+  you must use the restart argument before `&&`, like so: `--restart
+  unless-stopped && docker network connect your-network-name NginxProxyManager`
+</Note>
+
+### Docker compose
+
+While the UX isn't increadible you can use **Docker Compose Manager** to create and run Docker compose files

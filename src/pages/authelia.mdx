@@ -1,0 +1,101 @@
+export const description = 'description goes here'
+
+# Authelia
+
+Authelia is an open-source authentication and authorization server that provides Single Sign-On (SSO) and 2-factor authentication (2FA) functionalities. It is designed to integrate with various identity providers, including SAML and LDAP. Authelia also includes advanced features such as role-based access control (RBAC) and user session management. {{ className: 'lead' }}
+
+## Unraid installation
+
+I'm using IBRACORP's Authelia Unraid app for this guide. This app uses the official Docker image provided by Authelia. You can find the app in the Unraid Community Applications repository.
+
+## Configuration
+
+On first run Authelia will create a default config. In this guide I will go through what we need to change in order to get a minimal setup going.
+
+Because the configuration file is written in YAML, you will need to use a YAML editor to edit the configuration file. I recommend using [VS Code](https://code.visualstudio.com/) with the [YAML extension](https://marketplace.visualstudio.com/items?itemName=redhat.vscode-yaml) installed.
+
+<Note>
+  Want to edit files directly in your browser in true self-hosted
+  spirit? Try [code-server](https://github.com/coder/code-server)!
+</Note>
+
+### Basic configuration
+
+1. Under `access_control: default_policy:` we want to set the default policy to `one_factor`. This will allow users to login with just a username and password. If you want to require 2FA for all users, you can set this to `two_factor`, but you will need to configure a 2FA provider first.
+2. Under `authentication_backend:` we want to uncomment everything under `file:` and set `path:` to `/config/users_database.yml`. This will tell Authelia to use the users database file we will create later.
+3. Under `jwt_secret:` we want to set the secret to a random string. This will be used to sign the JWT tokens Authelia generates. You can generate a random string using the following command:
+
+```bash {{title: 'Generate random string'}}
+openssl rand -hex 32
+```
+
+4. Under `session:` we want to change `domain:` to our own domain name.
+5. We also want to uncomment `storage:` and under that `encryption_key:` and `local:` (with its children) as well. Don't forget to generate another secure password for the encryption key.
+
+### Access rules
+
+Above we set the `access_control` to `default_policy: one_factor`. This means that all traffic will be protected behind a username and password. However, we might want to add some special cases.
+
+Under access control we can add the following:
+
+```yaml
+rules:
+  # If we set the policy to "bypass" for a domain it will not require any authentication
+  - domain: public.mydomain.com
+    policy: bypass
+
+  # If you are running for example the app Wizarr (https://wizarr.dev)
+  # we need to add some expection to allow invited people access to links
+  # without authenticating them via Authelia
+  #
+  # We need to specify the bypass policy first
+  - domain: wizard.mydomain.com
+    policy: bypass
+    resources:
+      # https://docs.wizarr.dev/using-wizarr/single-sign-on-sso
+      - ^/join$
+      - ^/j/.*$
+      - ^/setup.*$
+      - ^/static/.*$
+  # Finally we specify the one_factory policy for resources not covered above
+  - domain: wizard.mydomain.com
+    policy: one_factor
+```
+
+### User configuration
+
+We need to create a file called `users_database.yml` in the config folder. This file will contain all the users that can login to Authelia. The file should look something like this:
+
+```yaml {{title: 'users_database.yml'}}
+# yamllint disable rule:line-length
+---
+###############################################################
+#                         Users Database                      #
+###############################################################
+
+users:
+  your_username:
+    disabled: false
+    displayname: 'Your Name'
+    password: 'HASH_GOES_HERE'
+    email: email@example.com
+    groups:
+      - admins
+      - dev
+---
+# yamllint enable rule:line-length
+```
+
+Replace `your_username` with your own username. You can also add more users if you want. You can generate a password hash using the following command in the Unraid console:
+
+```bash {{title: 'Generate password hash'}}
+docker run --rm authelia/authelia authelia hash-password YOUR_PASSWORD
+```
+
+## Using Authelia
+
+To use Authelia you need to configure your reverse proxy to use it. I'm using Nginx Proxy Manager, but it's compatible with other reverse proxies as well.
+
+You can find information on how to use it with Nginx Proxy Manager [here](/nginx-proxy-manager#full-configuration-example).
+
+Authelia also has [documentation](https://www.authelia.com/integration/proxies/) on how to configure it with other reverse proxies.

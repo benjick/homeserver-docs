@@ -1,0 +1,21 @@
+import { Guides } from '@/components/Guides'
+import { Apps } from '@/components/Apps'
+import { Resources } from '@/components/Resources'
+import { HeroPattern } from '@/components/HeroPattern'
+
+export const description = 'This is my homeserver documentation collection.'
+
+export const sections = [{ title: 'Apps', id: 'apps' }]
+
+<HeroPattern />
+
+# Homeserver documentation
+
+This site contains a collection of snippets and tricks I've learnt while setting up my homeserver. It's a work in progress, so please bear with me. I hope you find it useful! {{ className: 'lead' }}
+
+<div className="not-prose mb-16 mt-6 flex gap-3">
+  <Button href="/unraid" arrow="right" children="Unraid" />
+  <Button href="/authelia" variant="outline" children="Authelia" />
+</div>
+
+<Apps />
