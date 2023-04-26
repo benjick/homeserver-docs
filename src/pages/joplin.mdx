@@ -1,0 +1,95 @@
+export const description = 'description goes here'
+
+# Joplin
+
+## docker-compose
+
+{/* <!-- prettier-ignore --> */}
+
+<code title="test">
+<pre>
+services:
+  db:
+    image: postgres:15
+    container_name: joplin-db
+    volumes:
+      - /mnt/user/appdata/joplin/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=<Password id="test" length="10" />
+      - POSTGRES_USER=joplin
+      - POSTGRES_DB=joplin
+    networks:
+      - joplin
+  app:
+    image: joplin/server:latest
+    container_name: joplin
+    depends_on:
+      - db
+    ports:
+      - '22300:22300'
+    restart: unless-stopped
+    environment:
+      - APP_PORT=22300
+      - APP_BASE_URL=https://notes.benjick.se
+      - DB_CLIENT=pg
+      - POSTGRES_PASSWORD=<Password id="test" length="10" />
+      - POSTGRES_DATABASE=joplin
+      - POSTGRES_USER=joplin
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+    networks:
+      - misc
+      - joplin
+networks:
+  joplin:
+  misc:
+    name: misc
+    external: true
+</pre>
+</code>
+{/* <!-- prettier-ignore-end --> */}
+
+<Password id="test" length="10" />
+
+```yaml {{title: 'docker-compose.yml'}}
+services:
+  db:
+    image: postgres:15
+    container_name: joplin-db
+    volumes:
+      - /mnt/user/appdata/joplin/postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    environment:
+      - POSTGRES_PASSWORD=<Password id="test" length="10" />
+      - POSTGRES_USER=joplin
+      - POSTGRES_DB=joplin
+    networks:
+      - joplin
+  app:
+    image: joplin/server:latest
+    container_name: joplin
+    depends_on:
+      - db
+    ports:
+      - '22300:22300'
+    restart: unless-stopped
+    environment:
+      - APP_PORT=22300
+      - APP_BASE_URL=https://notes.benjick.se
+      - DB_CLIENT=pg
+      - POSTGRES_PASSWORD=sNDGCBNaGvVFUJJ86vCqsJA42v6z2PLfmZ9fNZDsvb
+      - POSTGRES_DATABASE=joplin
+      - POSTGRES_USER=joplin
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+    networks:
+      - misc
+      - joplin
+
+networks:
+  joplin:
+  misc:
+    name: misc
+    external: true
+```
